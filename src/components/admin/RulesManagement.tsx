@@ -1,195 +1,224 @@
+
 import React, { useState } from 'react';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
+import { Checkbox } from '@/components/ui/checkbox';
 import { Plus, Edit, Trash2 } from 'lucide-react';
 
 interface Rule {
   id: string;
-  group: string;
-  subgroup: string;
-  article: string;
+  version: string;
+  title: string;
+  description: string;
+  groups: RuleGroup[];
+}
+
+interface RuleGroup {
+  id: string;
+  name: string;
+  items: RuleItem[];
+}
+
+interface RuleItem {
+  id: string;
+  value: string;
+  subgroup?: string;
 }
 
 export const RulesManagement = () => {
   const [rules, setRules] = useState<Rule[]>([
-    { id: '1', group: 'Група №1', subgroup: 'Підгрупа №1', article: '1234' },
+    {
+      id: '1',
+      version: '1.1',
+      title: 'Best Practices',
+      description: 'Випрямлячі → (будь-яка підгрупа)\nПеретворювачі → (будь-яка підгрупа)\n(включаючи випрямлячі, частотні перетворювачі)\nТрансформатори → (будь-яка підгрупа)\nПідсилювачі, регулятори → (будь-яка підгрупа)\n\nБільш важке обладнання розміщується в самому низу шафи.',
+      groups: [
+        {
+          id: 'g1',
+          name: 'Група',
+          items: [
+            { id: 'i1', value: '5' },
+            { id: 'i2', value: '13' },
+            { id: 'i3', value: '22' },
+            { id: 'i4', value: '107' }
+          ]
+        },
+        {
+          id: 'g2',
+          name: 'Підгрупа',
+          items: []
+        },
+        {
+          id: 'g3',
+          name: 'Вага',
+          items: [
+            { id: 'i5', value: '10' }
+          ]
+        }
+      ]
+    },
+    {
+      id: '2',
+      version: '1.2',
+      title: 'Best Practices',
+      description: 'Випрямлячі → (будь-яка підгрупа)\nПеретворювачі → (будь-яка підгрупа)\n(включаючи випрямлячі, частотні перетворювачі)\nТрансформатори → (будь-яка підгрупа)\nПідсилювачі, регулятори → (будь-яка підгрупа)\n\nЯкщо інтервал не вказано, застосовувати інтервал між пристроями — 30 мм',
+      groups: [
+        {
+          id: 'g4',
+          name: 'Група',
+          items: [
+            { id: 'i6', value: '5, 13, 22, 107' }
+          ]
+        },
+        {
+          id: 'g5',
+          name: 'Підгрупа',
+          items: []
+        },
+        {
+          id: 'g6',
+          name: 'Відстань',
+          items: [
+            { id: 'i7', value: '10' }
+          ]
+        }
+      ]
+    }
   ]);
 
-  const [newRule, setNewRule] = useState<Omit<Rule, 'id'>>({
-    group: '',
-    subgroup: '',
-    article: '',
-  });
+  const [editingRule, setEditingRule] = useState<string | null>(null);
+  const [newItemValue, setNewItemValue] = useState('');
 
-  const [editingRule, setEditingRule] = useState<Rule | null>(null);
-
-  const handleAddRule = () => {
-    if (newRule.group && newRule.subgroup && newRule.article) {
-      const rule: Rule = {
-        ...newRule,
-        id: Date.now().toString(),
-      };
-      setRules([...rules, rule]);
-      setNewRule({ group: '', subgroup: '', article: '' });
-    }
+  const handleEditRule = (ruleId: string) => {
+    setEditingRule(editingRule === ruleId ? null : ruleId);
   };
 
-  const handleEditRule = (rule: Rule) => {
-    setEditingRule(rule);
+  const handleAddItem = (ruleId: string, groupId: string) => {
+    if (!newItemValue.trim()) return;
+    
+    setRules(rules.map(rule => {
+      if (rule.id === ruleId) {
+        return {
+          ...rule,
+          groups: rule.groups.map(group => {
+            if (group.id === groupId) {
+              return {
+                ...group,
+                items: [...group.items, {
+                  id: Date.now().toString(),
+                  value: newItemValue
+                }]
+              };
+            }
+            return group;
+          })
+        };
+      }
+      return rule;
+    }));
+    
+    setNewItemValue('');
   };
 
-  const handleUpdateRule = () => {
-    if (editingRule) {
-      setRules(rules.map(r => r.id === editingRule.id ? editingRule : r));
-      setEditingRule(null);
-    }
+  const handleDeleteItem = (ruleId: string, groupId: string, itemId: string) => {
+    setRules(rules.map(rule => {
+      if (rule.id === ruleId) {
+        return {
+          ...rule,
+          groups: rule.groups.map(group => {
+            if (group.id === groupId) {
+              return {
+                ...group,
+                items: group.items.filter(item => item.id !== itemId)
+              };
+            }
+            return group;
+          })
+        };
+      }
+      return rule;
+    }));
   };
-
-  const handleDeleteRule = (id: string) => {
-    setRules(rules.filter(r => r.id !== id));
-  };
-
-  const groupOptions = ['Група №1', 'Група №2', 'Група №3'];
-  const subgroupOptions = ['Підгрупа №1', 'Підгрупа №2', 'Підгрупа №3'];
 
   return (
     <div className="p-6">
       <CardHeader>
         <CardTitle className="text-2xl font-bold text-gray-800">Управління правилами</CardTitle>
-        <p className="text-gray-600 mt-2">
-          Правило 4.2: Якщо "Номер типу" або "Номер для замовлення" є у списку → аксесуар входить до складу пристрою (і може бути не розміщений у просторі ярлика).
-        </p>
       </CardHeader>
       
-      <CardContent className="space-y-6">
-        {/* Existing Rules */}
-        <div className="space-y-4">
-          {rules.map((rule) => (
-            <div key={rule.id} className="grid grid-cols-4 gap-4 items-center p-4 bg-gray-50 rounded-lg">
-              <div>
-                <label className="block text-sm font-medium text-gray-700 mb-1">Група</label>
-                {editingRule?.id === rule.id ? (
-                  <Select value={editingRule.group} onValueChange={(value) => setEditingRule({ ...editingRule, group: value })}>
-                    <SelectTrigger>
-                      <SelectValue />
-                    </SelectTrigger>
-                    <SelectContent>
-                      {groupOptions.map(option => (
-                        <SelectItem key={option} value={option}>{option}</SelectItem>
+      <CardContent className="space-y-8">
+        {rules.map((rule) => (
+          <Card key={rule.id} className="border-2">
+            <CardHeader className="pb-4">
+              <div className="flex items-center justify-between">
+                <div className="flex items-center space-x-4">
+                  <h3 className="text-lg font-semibold">Правило {rule.version}</h3>
+                  <span className="px-3 py-1 bg-green-100 text-green-800 rounded-full text-sm font-medium">
+                    {rule.title}
+                  </span>
+                </div>
+                <Button
+                  onClick={() => handleEditRule(rule.id)}
+                  variant="outline"
+                  className="text-blue-600 border-blue-600 hover:bg-blue-50"
+                >
+                  <Edit className="w-4 h-4 mr-2" />
+                  Редагувати
+                </Button>
+              </div>
+              <div className="mt-4 text-sm text-gray-700 whitespace-pre-line bg-gray-50 p-4 rounded-lg">
+                {rule.description}
+              </div>
+            </CardHeader>
+            
+            <CardContent>
+              <div className="grid grid-cols-2 gap-8">
+                {rule.groups.map((group, groupIndex) => (
+                  <div key={group.id} className="space-y-4">
+                    <h4 className="font-medium text-gray-700">{group.name}</h4>
+                    
+                    <div className="space-y-2">
+                      {group.items.map((item) => (
+                        <div key={item.id} className="flex items-center space-x-2">
+                          <div className="flex-1 p-3 bg-gray-100 rounded border">
+                            {item.value}
+                          </div>
+                          <Button
+                            onClick={() => handleDeleteItem(rule.id, group.id, item.id)}
+                            size="sm"
+                            className="bg-blue-600 hover:bg-blue-700 text-white px-4"
+                          >
+                            Редагувати
+                          </Button>
+                        </div>
                       ))}
-                    </SelectContent>
-                  </Select>
-                ) : (
-                  <div className="p-2 bg-white rounded border">{rule.group}</div>
-                )}
-              </div>
-              
-              <div>
-                <label className="block text-sm font-medium text-gray-700 mb-1">Підгрупа</label>
-                {editingRule?.id === rule.id ? (
-                  <Select value={editingRule.subgroup} onValueChange={(value) => setEditingRule({ ...editingRule, subgroup: value })}>
-                    <SelectTrigger>
-                      <SelectValue />
-                    </SelectTrigger>
-                    <SelectContent>
-                      {subgroupOptions.map(option => (
-                        <SelectItem key={option} value={option}>{option}</SelectItem>
-                      ))}
-                    </SelectContent>
-                  </Select>
-                ) : (
-                  <div className="p-2 bg-white rounded border">{rule.subgroup}</div>
-                )}
-              </div>
-              
-              <div>
-                <label className="block text-sm font-medium text-gray-700 mb-1">Артикул</label>
-                {editingRule?.id === rule.id ? (
-                  <Input
-                    value={editingRule.article}
-                    onChange={(e) => setEditingRule({ ...editingRule, article: e.target.value })}
-                    className="w-full"
-                  />
-                ) : (
-                  <div className="p-2 bg-white rounded border">{rule.article}</div>
-                )}
-              </div>
-              
-              <div className="flex space-x-2">
-                {editingRule?.id === rule.id ? (
-                  <>
-                    <Button onClick={handleUpdateRule} className="bg-blue-600 hover:bg-blue-700">
-                      Зберегти
-                    </Button>
-                    <Button onClick={() => setEditingRule(null)} variant="outline">
-                      Скасувати
-                    </Button>
-                  </>
-                ) : (
-                  <>
-                    <Button onClick={() => handleEditRule(rule)} className="bg-blue-600 hover:bg-blue-700">
-                      <Edit className="w-4 h-4 mr-1" />
-                      Редагувати
-                    </Button>
-                    <Button onClick={() => handleDeleteRule(rule.id)} className="bg-red-600 hover:bg-red-700">
-                      <Trash2 className="w-4 h-4 mr-1" />
-                      Видалити
-                    </Button>
-                  </>
-                )}
-              </div>
-            </div>
-          ))}
-        </div>
-
-        {/* Add New Rule */}
-        <div className="grid grid-cols-4 gap-4 items-end p-4 bg-blue-50 rounded-lg">
-          <div>
-            <label className="block text-sm font-medium text-gray-700 mb-1">Група</label>
-            <Select value={newRule.group} onValueChange={(value) => setNewRule({ ...newRule, group: value })}>
-              <SelectTrigger>
-                <SelectValue placeholder="Виберіть групу" />
-              </SelectTrigger>
-              <SelectContent>
-                {groupOptions.map(option => (
-                  <SelectItem key={option} value={option}>{option}</SelectItem>
+                      
+                      {editingRule === rule.id && (
+                        <div className="flex items-center space-x-2 pt-2">
+                          <Input
+                            value={newItemValue}
+                            onChange={(e) => setNewItemValue(e.target.value)}
+                            placeholder={`Додати до ${group.name.toLowerCase()}`}
+                            className="flex-1"
+                          />
+                          <Button
+                            onClick={() => handleAddItem(rule.id, group.id)}
+                            size="sm"
+                            className="bg-blue-600 hover:bg-blue-700 text-white"
+                          >
+                            <Plus className="w-4 h-4" />
+                          </Button>
+                        </div>
+                      )}
+                    </div>
+                  </div>
                 ))}
-              </SelectContent>
-            </Select>
-          </div>
-          
-          <div>
-            <label className="block text-sm font-medium text-gray-700 mb-1">Підгрупа</label>
-            <Select value={newRule.subgroup} onValueChange={(value) => setNewRule({ ...newRule, subgroup: value })}>
-              <SelectTrigger>
-                <SelectValue placeholder="Виберіть підгрупу" />
-              </SelectTrigger>
-              <SelectContent>
-                {subgroupOptions.map(option => (
-                  <SelectItem key={option} value={option}>{option}</SelectItem>
-                ))}
-              </SelectContent>
-            </Select>
-          </div>
-          
-          <div>
-            <label className="block text-sm font-medium text-gray-700 mb-1">Артикул</label>
-            <Input
-              value={newRule.article}
-              onChange={(e) => setNewRule({ ...newRule, article: e.target.value })}
-              placeholder="Введіть артикул"
-            />
-          </div>
-          
-          <div>
-            <Button onClick={handleAddRule} className="bg-blue-600 hover:bg-blue-700 w-full">
-              <Plus className="w-4 h-4 mr-2" />
-              Додати
-            </Button>
-          </div>
-        </div>
+              </div>
+            </CardContent>
+          </Card>
+        ))}
       </CardContent>
     </div>
   );
